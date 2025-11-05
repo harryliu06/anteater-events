@@ -116,6 +116,7 @@ class EventListView(View):
     supabase = get_supabase_client()
 
     def get(self, request: HttpRequest) -> JsonResponse:
+        # example url query: http://127.0.0.1:8000/events/?day=2025-11-05&categories=music&categories=fun
         logger.info(request.GET)
         categories_param = request.GET.getlist("categories")
         day_param = request.GET.get("day")
