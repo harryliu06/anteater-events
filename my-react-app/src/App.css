@@ -49,3 +49,19 @@
   gap: 8px;
   pointer-events: auto;
 }
+
+/* custom marker used by marker.tsx */
+.custom-marker {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.custom-marker svg {
+  width: 40px;
+  height: 40px;
+  color: #2441d1; 
+}

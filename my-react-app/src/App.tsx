@@ -1,8 +1,9 @@
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect } from 'react'
 import FloatingActionButtons from './components/FloatingActionButton'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css';
 import './App.css'
+import addGeoJSONMarkers from './components/marker';
 
 const MAPBOX_KEY = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 
@@ -23,11 +24,19 @@ function App() {
 
     mapRef.current = new mapboxgl.Map({
       container: mapContainerRef.current,
+      style: 'mapbox://styles/mapbox/streets-v11',
       center: [-117.841019, 33.645198],
       zoom: 16
     });
 
+    // add demo markers from public/location.geojson
+    let removeMarkers: (() => void) | undefined
+    if (mapRef.current) {
+      addGeoJSONMarkers(mapRef.current).then(rem => { removeMarkers = rem }).catch(err => console.warn(err))
+    }
+
     return () => {
+      if (removeMarkers) removeMarkers()
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
