@@ -65,9 +65,9 @@ export default function CreateDetails({ open, onClose, onSubmit }: Props) {
             <label htmlFor="description" className="placeholder">Description</label>
           </div>
           <div className="input-container ic1">
-            <input id="day" className="input" type="text" placeholder=" " title="Day" aria-label="Day" value={day} onChange={(e) => setDay(e.target.value)} />
+            <input id="day" className="input" type="text" placeholder="" title="Day" aria-label="Day" value={day} onChange={(e) => setDay(e.target.value)} />
             <div className="cut"></div>
-            <label htmlFor="day" className="placeholder">Day</label>
+            <label htmlFor="day" className="placeholder">Day (YYYY-MM-DD)</label>
           </div>
           <div className="input-container ic1">
             <input id="start-time" className="input" type="time" placeholder=" " title="Start time" aria-label="Start time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
