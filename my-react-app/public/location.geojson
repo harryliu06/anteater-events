@@ -1,0 +1,49 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.841019,
+          33.645198
+        ]
+      },
+      "type": "Feature",
+      "properties": {
+        "title": "UCI Aldrich Park",
+        "description": "The central park at the University of California, Irvine.",
+        "day": "2025-11-04",
+        "start_time": "2025-11-04T14:00:00Z",
+        "end_time": "2025-11-05T18:00:00Z",
+        "categories": [
+          "Hackathon",
+          "Technology",
+          "Competition"
+        ]
+      }
+    },
+    {
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -117.8425,
+          33.6441
+        ]
+      },
+      "type": "Feature",
+      "properties": {
+        "title": "UCI Student Center",
+        "description": "The hub for student activities and services at UCI.",
+        "day": "2015-11-04",
+        "start_time": "2025-11-04T12:00:00Z",
+        "end_time": "2025-11-05T19:00:00Z",
+        "categories": [
+          "Hackathon",
+          "Technology",
+          "Competition"
+        ]
+      }
+    }
+  ]
+}
