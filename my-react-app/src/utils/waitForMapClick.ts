@@ -1,6 +1,6 @@
 import mapboxgl from 'mapbox-gl'
 
-// Wait for a single click on the map, set cursor to crosshair while waiting.
+// Wait for the user to choose the location on the map, set cursor to crosshair while waiting.
 export default function waitForMapClick(map: mapboxgl.Map): Promise<{ lng: number; lat: number }> {
     return new Promise((resolve) => {
         const canvas = map.getCanvas()

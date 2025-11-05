@@ -12,7 +12,7 @@ export type CreateFormData = {
   categories?: string[]
 }
 
-// Create and add a DOM marker to the map. Returns the Marker instance.
+// Create and add a marker to the map. Returns the Marker instance.
 export default function createMarker(
   map: mapboxgl.Map,
   lng: number,

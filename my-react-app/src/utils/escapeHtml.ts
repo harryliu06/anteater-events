@@ -1,3 +1,5 @@
+//Function to escape HTML special characters in a string
+
 export default function escapeHtml(str: string): string {
     return String(str)
         .replace(/&/g, '&amp;')
