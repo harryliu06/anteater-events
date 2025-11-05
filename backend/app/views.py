@@ -112,43 +112,31 @@ def _normalize_event_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     return normalized
 
-@method_decorator(csrf_exempt, name="dispatch")
 class EventListView(View):
     supabase = get_supabase_client()
 
     def get(self, request: HttpRequest) -> JsonResponse:
-        categories_param = request.GET.get("categories")
+        logger.info(request.GET)
+        categories_param = request.GET.getlist("categories")
         day_param = request.GET.get("day")
-
-        query = self.supabase.table(EVENTS_TABLE).select("*")
-
-        now_iso = _now_utc_iso()
-        query = query.gte("end_time", now_iso)
-
-        cats = _to_list(categories_param)
-        if cats and not (len(cats) == 1 and cats[0].lower() == "all"):
-            try:
-                query = query.overlaps("categories", cats)
-            except AttributeError:
-                or_terms = ",".join(f"categories.cs.{{{c}}}" for c in cats)
-                query = query.or_(or_terms)
-        if day_param:
-            try:
-                day_start_iso, day_end_iso = _parse_day_bounds(day_param)
-                query = query.or_(
-                    f"day.eq.{day_param},and(end_time.gte.{day_start_iso},start_time.lte.{day_end_iso})"
-                )
-            except Exception:
-                return JsonResponse(
-                    {"error": "Invalid 'day' format. Expected YYYY-MM-DD."}, status=400
-                )
-        try:
-            resp = query.order("start_time", desc=False).execute()
-            events: List[Dict[str, Any]] = resp.data or []
-            return JsonResponse({"events": events}, status=200)
-        except Exception as e:
-            logger.exception("Failed to fetch events")
-            return JsonResponse({"error": str(e)}, status=500)
+        logger.info(f"Fetching events with categories={categories_param} and day={day_param}")
+        
+        if categories_param[0] != 'all':
+            resp = (
+                self.supabase.table("events")
+                .select("*")
+                .eq("day", day_param)
+                .overlaps("categories", categories_param)
+                .execute()
+            )
+        else:
+            resp = (
+                self.supabase.table("events")
+                .select("*") 
+                .eq("day", day_param)
+                .execute()
+            )
+        return JsonResponse({"payload":resp.data}, status=200)
 
     """
     TO-DO
@@ -160,7 +148,7 @@ class EventListView(View):
 class EventDetailView(View):
     supabase = get_supabase_client()
     def get(self, request: HttpRequest, event_id: str) -> JsonResponse:
-        logger.info(event_id)
+        logger.info("Fetching event with id={event_id}")
         try:
             resp = (
                 self.supabase.table(EVENTS_TABLE)
@@ -169,7 +157,6 @@ class EventDetailView(View):
                 .limit(1)
                 .execute()
             )
-            logger.info(resp)
             rows: List[Dict[str, Any]] = resp.data or []
             if not rows:
                 return JsonResponse({"error": "Event not found"}, status=404)
