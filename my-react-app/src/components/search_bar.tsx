@@ -53,32 +53,38 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
   },
 }));
 
-
 async function sendDataFromSearchBar(query: string) {
-  const q = String(query ?? '').trim();
-  if (!q) return null; // don't call backend for empty queries
-
-  // Formatted_Date
-  const today = new Date();
-  const y = today.getFullYear();
-  const m = (today.getMonth() + 1).toString().padStart(2, '0'); 
-  const d = today.getDate().toString().padStart(2, '0');
-  const formatted_date = `${y}-${m}-${d}`;
+    const q = String(query ?? '').trim();
+    console.log('Search query to send:', q);
+  if (!q) return null;
 
   
-  const base = API_BASE || '';
+  const today = new Date();
+  const formatted_date = `${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2,'0')}-${today.getDate().toString().padStart(2,'0')}`;
+
+  const base = ((import.meta.env.VITE_API_URL as string|undefined) || '').replace(/\/+$/,'');
+  const url = `${base}/events/search/`;
 
   try {
-    const formattedQuery = encodeURIComponent(q);
-    const url = `${base}/search/?day=${formatted_date}&search=${formattedQuery}`;
-    const resp = await axios.get(url, { timeout: 8000 });
+      const resp = await axios.get(url, { params: { day: formatted_date, search: q }, timeout: 8000 });
       console.log('Search response data:', resp.data);
-      console.log(url)
-    return resp.data;
-  } catch (err) {
 
-    console.error('search request failed', err);
-    throw err;
+    const events = resp.data?.events || [];
+
+    const normalized = (s: string) => s.toLowerCase().replace(/\s+/g,' ').trim();
+    const needle = normalized(q);
+
+    const matches = events.filter((event: any) => {
+      const title = normalized(String(event.title || ''));
+      const desc  = normalized(String(event.description || ''));
+      return title.includes(needle) || desc.includes(needle);
+    });
+
+    console.log('Search matches:', matches);
+    return matches;
+  } catch (err) {
+    console.error('Search request failed', err);
+    return null;
   }
 }
 
