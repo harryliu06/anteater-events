@@ -1,42 +1,131 @@
 import { useRef, useEffect, useState } from 'react'
 import FloatingActionButtons from './components/FloatingActionButton'
+import SearchBar from './components/search_bar'
 import mapboxgl from 'mapbox-gl'
-import 'mapbox-gl/dist/mapbox-gl.css';
+import 'mapbox-gl/dist/mapbox-gl.css'
 import './App.css'
-import addGeoJSONMarkers from './components/marker';
+import addGeoJSONMarkers from './components/marker'
 import CreateDetails, { type CreateFormData } from './components/create_details'
 import createMarker from './utils/createMarker'
 import waitForMapClick from './utils/waitForMapClick'
-import axios from 'axios';
+import axios from 'axios'
 
-const MAPBOX_KEY = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
+const MAPBOX_KEY = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined
 
 function App() {
-  // mapRef holds the map instance
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  // mapContainerRef holds the map container div
-  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  // Map and container refs
+  const mapRef = useRef<mapboxgl.Map | null>(null)
+  const mapContainerRef = useRef<HTMLDivElement | null>(null)
 
+  // Keep track of DB-backed markers we add so we can clear/fit
+  const dbMarkersRef = useRef<mapboxgl.Marker[]>([])
+  // Optional: handle demo (geojson) marker cleanup
+  const demoRemoveRef = useRef<(() => void) | null>(null)
+
+  // Filters
+  const [day, setDay] = useState<string>(() => new Date().toISOString().slice(0, 10))
+  const [categories] = useState<string[] | 'all'>('all')
+
+  // Create modal state
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [selectedLocation, setSelectedLocation] = useState<{ lng: number; lat: number } | null>(null)
 
-  // choose location first, then open the modal
+  // -------- Helpers --------
+  const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) || '').replace(/\/+$/, '')
+  const listEndpoint = apiBase ? `${apiBase}/events/` : '/events/'
+  const postEndpoint = listEndpoint
+
+  function clearDbMarkers() {
+    for (const m of dbMarkersRef.current) m.remove()
+    dbMarkersRef.current = []
+  }
+
+  function fitMapToMarkers(markers: mapboxgl.Marker[]) {
+    const map = mapRef.current
+    if (!map || markers.length === 0) return
+    const bounds = new mapboxgl.LngLatBounds()
+    for (const m of markers) {
+      const pos = m.getLngLat()
+      bounds.extend([pos.lng, pos.lat])
+    }
+    // Pad a bit so markers aren’t at the very edges
+    map.fitBounds(bounds, { padding: 60, maxZoom: 17, duration: 500 })
+  }
+
+  async function loadEvents(d: string, cats: string[] | 'all', { fit = true }: { fit?: boolean } = {}) {
+    const map = mapRef.current
+    if (!map) return
+
+    const params = new URLSearchParams()
+    params.set('day', d)
+    params.set('categories', cats === 'all' ? 'all' : cats.join(','))
+
+    let res: Response
+    try {
+      res = await fetch(`${listEndpoint}?${params.toString()}`)
+    } catch (e) {
+      console.warn('Failed to reach events endpoint', e)
+      return
+    }
+    const json = await res.json() as { events?: any[] }
+
+    clearDbMarkers()
+
+    for (const r of json.events || []) {
+      const lng = Number(r.longitude)
+      const lat = Number(r.latitude)
+      if (!Number.isFinite(lng) || !Number.isFinite(lat)) continue
+
+      const mk = createMarker(map, lng, lat, {
+        title: r.title,
+        description: r.description,
+        day: r.day,
+        start_time: r.start_time, // server stores timetz; our popup will show the string
+        end_time: r.end_time,
+        categories: Array.isArray(r.categories) ? r.categories : [],
+      })
+      dbMarkersRef.current.push(mk)
+    }
+
+    // Ensure the previously inserted events are visible even if they’re far from the campus center
+    if (fit) fitMapToMarkers(dbMarkersRef.current)
+  }
+
+  async function loadUpcoming() {
+    const map = mapRef.current
+    if (!map) return
+
+    const base = apiBase ? `${apiBase.replace(/\/+$/,'')}/events/` : '/events/'
+    const res = await fetch(base)           // NOTE: no ?day=...
+    if (!res.ok) return
+    const json = await res.json() as { events?: any[] }
+
+    clearDbMarkers()
+    for (const r of (json.events || [])) {
+      const mk = createMarker(map, Number(r.longitude), Number(r.latitude), {
+        title: r.title, description: r.description, day: r.day,
+        start_time: r.start_time, end_time: r.end_time, categories: r.categories
+      })
+      dbMarkersRef.current.push(mk)
+    }
+    fitMapToMarkers(dbMarkersRef.current)
+  }
+
+
+  // -------- Create flow --------
   const handleCreate = () => {
     const map = mapRef.current
     if (!map) {
-      // opening modal without location if map not ready
       setSelectedLocation(null)
       setIsCreateOpen(true)
       return
     }
-    // wait for a single map click
     waitForMapClick(map).then(({ lng, lat }) => {
       setSelectedLocation({ lng, lat })
       setIsCreateOpen(true)
     })
   }
 
-  // called when the modal form is submitted
   const handleCreateSubmit = async (data: CreateFormData) => {
     setIsCreateOpen(false)
     const loc = selectedLocation
@@ -44,24 +133,17 @@ function App() {
       console.warn('No location selected — cannot place marker')
       return
     }
-
     const map = mapRef.current
     if (!map) return
 
-    // Build payload expected by backend
-    const apiBase = (import.meta.env.VITE_API_URL as string | undefined) || ''
-    const endpoint = apiBase ? `${apiBase.replace(/\/+$/,'')}/events` : '/events'
-
-    // converting to ISO
-    const toIso = (day?: string, time?: string) => {
+    // converting to ISO for backend; backend normalizes to day + timetz
+    const toIso = (dayStr?: string, time?: string) => {
       if (!time) return ''
       if (time.includes('T')) return time
-      // assume input like 'HH:MM' and day like 'YYYY-MM-DD'
-      if (day) return new Date(`${day}T${time}:00Z`).toISOString()
+      if (dayStr) return new Date(`${dayStr}T${time}:00Z`).toISOString()
       return new Date(time).toISOString()
     }
 
-    // JSON payload
     const payload = {
       id: '',
       title: data.title,
@@ -71,13 +153,15 @@ function App() {
       end_time: toIso(data.day, data.end_time),
       latitude: loc.lat,
       longitude: loc.lng,
-      categories: Array.isArray(data.categories) ? data.categories : (data.categories ? String(data.categories).split(',').map(s => s.trim()).filter(Boolean) : []),
+      categories: Array.isArray(data.categories)
+        ? data.categories
+        : (data.categories ? String(data.categories).split(',').map(s => s.trim()).filter(Boolean) : []),
     }
 
     try {
-      const resp = await axios.post(endpoint, payload, { headers: { 'Content-Type': 'application/json' } })
+      const resp = await axios.post(postEndpoint, payload, { headers: { 'Content-Type': 'application/json' } })
       const respData = resp.data || {}
-
+      // For instant feedback, draw the returned feature if present
       if (respData.feature && respData.feature.geometry && Array.isArray(respData.feature.geometry.coordinates)) {
         const [lon, lat] = respData.feature.geometry.coordinates
         const props = respData.feature.properties || {}
@@ -90,56 +174,80 @@ function App() {
           categories: props.categories || data.categories,
         })
       } else {
-        // if failed, create marker locally at selected location
+        // fallback: draw locally at selected point
         createMarker(map, loc.lng, loc.lat, data)
       }
+
+      // Reload from the API so it persists across refresh and ensure visibility
+      await loadEvents(propsDay(respData) ?? day, categories, { fit: true })
     } catch (err) {
       console.error('Failed to POST event, falling back to local marker', err)
       createMarker(map, loc.lng, loc.lat, data)
+      // Still refresh list so we remain consistent
+      await loadEvents(day, categories, { fit: true })
+    } finally {
+      setSelectedLocation(null)
     }
 
-    // clear selected location
-    setSelectedLocation(null)
+    function propsDay(respData: any): string | undefined {
+      return respData?.feature?.properties?.day as string | undefined
+    }
   }
-  
-  // Create map when component mounts
+
+  // -------- Map bootstrap --------
   useEffect(() => {
     if (MAPBOX_KEY) {
-      mapboxgl.accessToken = MAPBOX_KEY;
+      mapboxgl.accessToken = MAPBOX_KEY
     } else {
-      console.warn('Token not found! Map not loaded correctly.');
+      console.warn('Mapbox token not found! Map may not load.')
     }
-    if (!mapContainerRef.current) return;
+    if (!mapContainerRef.current) return
 
-    mapRef.current = new mapboxgl.Map({
+    const map = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: 'mapbox://styles/mapbox/streets-v11',
       center: [-117.841019, 33.645198],
-      zoom: 16
-    });
+      zoom: 16,
+    })
+    mapRef.current = map
 
-    // add demo markers from public/location.geojson
-    let removeMarkers: (() => void) | undefined
-    if (mapRef.current) {
-      addGeoJSONMarkers(mapRef.current).then(rem => { removeMarkers = rem }).catch(err => console.warn(err))
-    }
+    map.on('load', async () => {
+      // 1) Load existing events from the backend so the previously added two entries show up
+      await loadEvents(day, categories, { fit: true })
+      await loadUpcoming()
+
+      // 2) (Optional) Also show the demo markers from /public/location.geojson,
+      //    preserving your current behavior.
+      try {
+        const removeDemo = await addGeoJSONMarkers(map)
+        demoRemoveRef.current = removeDemo
+      } catch (e) {
+        console.warn('Failed to add demo markers', e)
+      }
+    })
 
     return () => {
-      if (removeMarkers) removeMarkers()
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
+      clearDbMarkers()
+      if (demoRemoveRef.current) {
+        try { demoRemoveRef.current() } catch {}
+        demoRemoveRef.current = null
       }
+      map.remove()
+      mapRef.current = null
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
 
   return (
     <>
-      <div id='map-container' ref={mapContainerRef}>
-        <FloatingActionButtons onCreate={handleCreate}></FloatingActionButtons>
-      </div>
-      <CreateDetails open={isCreateOpen} onClose={() => setIsCreateOpen(false)} onSubmit={handleCreateSubmit} />
+      <SearchBar />
+      <div id="map-container" ref={mapContainerRef} />
+      <FloatingActionButtons onCreate={handleCreate} />
+      <CreateDetails
+        open={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onSubmit={handleCreateSubmit}
+      />
     </>
   )
 }
