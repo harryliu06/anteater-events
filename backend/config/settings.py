@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 if Path(dotenv_path=BASE_DIR.parent / '.env').exists():
     load_dotenv(dotenv_path=BASE_DIR.parent / '.env')
 
-
+GEMINI_API_KEY = getenv("GEMINI_API_KEY")
 SUPABASE_URL = getenv("SUPABASE_URL")
 SUPABASE_KEY = getenv("SUPABASE_KEY")
 CORS_ALLOW_ALL_ORIGINS = getenv("CORS_ALLOW_ALL_ORIGINS", "False") == "True"
