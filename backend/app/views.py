@@ -160,3 +160,28 @@ class EventDetailView(View):
         except Exception as e:
             logger.exception("Failed to fetch event detail")
             return JsonResponse({"error": str(e)}, status=500)
+
+class EventSearchView(View):
+    supabase = get_supabase_client()
+
+    def get(self, request: HttpRequest) -> JsonResponse:
+        day_param = request.GET.get("day")
+        query_param = request.GET.get("search", "").strip()
+        if not query_param:
+            return JsonResponse({"error": "Missing required 'search' parameter"}, status=400)
+        logger.info(f"Searching events on day={day_param} with query='{query_param}'")
+        try:
+            resp = (
+                self.supabase.table(EVENTS_TABLE)
+                .select("*")
+                .eq("day", day_param)
+                .or_(
+                    f"title.ilike.%{query_param}%,description.ilike.%{query_param}%"
+                )
+                .execute()
+            )
+            return JsonResponse({"events": resp.data}, status=200)
+        except Exception as e:
+            logger.exception("Search failed")
+            return JsonResponse({"error": str(e)}, status=500)
+#http://127.0.0.1:8000/events/search/?day=2025-11-05&search=icssc%20hackathon
