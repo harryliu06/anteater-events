@@ -6,6 +6,13 @@
   left: 0;
 }
 
+/* Prevent the page from scrolling and ensure the map fills the viewport */
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden; /* disable page scrolling */
+}
+
 #map-container {
   height: 100%;
   width: 100%;
@@ -40,10 +47,10 @@
 
 /* container for floating action buttons so they sit on top of the map */
 .fab-container {
-  position: absolute;
+  position: fixed; /* keep the FAB visible even when the map is animating */
   right: 1rem;
   bottom: 1rem;
-  z-index: 1200; /* ensure it's above map layers */
+  z-index: 1400; /* ensure it's above map layers and app bar */
   display: flex;
   flex-direction: column;
   gap: 8px;
