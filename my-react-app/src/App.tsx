@@ -1,6 +1,5 @@
 import { useRef, useEffect, useState } from 'react'
 import FloatingActionButtons from './components/FloatingActionButton'
-import SearchBar from './components/search_bar'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import './App.css'
@@ -9,7 +8,7 @@ import CreateDetails, { type CreateFormData } from './components/create_details'
 import createMarker from './utils/createMarker'
 import waitForMapClick from './utils/waitForMapClick'
 import axios from 'axios'
-
+import SearchBar from './components/search_bar';
 const MAPBOX_KEY = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined
 
 function App() {
@@ -65,6 +64,10 @@ function App() {
       res = await fetch(`${listEndpoint}?${params.toString()}`)
     } catch (e) {
       console.warn('Failed to reach events endpoint', e)
+      return
+    }
+    if (!res.ok) {
+      console.warn('Events fetch failed with status', res.status)
       return
     }
     const json = await res.json() as { events?: any[] }
@@ -241,8 +244,9 @@ function App() {
   return (
     <>
       <SearchBar />
-      <div id="map-container" ref={mapContainerRef} />
-      <FloatingActionButtons onCreate={handleCreate} />
+      <div id="map-container" ref={mapContainerRef}>
+        <FloatingActionButtons onCreate={handleCreate} />
+      </div>
       <CreateDetails
         open={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
