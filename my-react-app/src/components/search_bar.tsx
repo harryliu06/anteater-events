@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { styled, alpha } from '@mui/material/styles';
+import { styled, alpha, useTheme } from '@mui/material/styles';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
@@ -7,6 +7,12 @@ import Typography from '@mui/material/Typography';
 import InputBase from '@mui/material/InputBase';
 // removed unused IconButton/MenuIcon imports
 import SearchIcon from '@mui/icons-material/Search';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import IconButton from '@mui/material/IconButton';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { RiGeminiFill } from 'react-icons/ri';
 import axios from 'axios';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -179,7 +185,12 @@ export default function SearchBar({ onDateChange, onCategoriesFound, onSearchRes
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [searching, setSearching] = useState(false);
 
-  // Avoid 
+  // responsive/mobile date-picker support
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [mobilePickerOpen, setMobilePickerOpen] = useState(false);
+
+  // Avoid
   const didMountRef = React.useRef(false)
 
   useEffect(() => {
@@ -220,7 +231,7 @@ export default function SearchBar({ onDateChange, onCategoriesFound, onSearchRes
   return (
     <Box sx={{ flexGrow: 1 }}>
       <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1200 }}>
-        <Toolbar>
+        <Toolbar className="toolbar">
           <Typography
             variant="h6"
             noWrap
@@ -228,10 +239,33 @@ export default function SearchBar({ onDateChange, onCategoriesFound, onSearchRes
             sx={{ flexGrow: 1, display: { xs: 'none', sm: 'block' } }}
           >
             ANTEATER EVENTS
-                  </Typography>
-                    <Box sx={{ mr: { xs: 1, sm: 2, md: 3 }, display: 'flex', alignItems: 'center' }}>
-                      <BasicDatePicker value={selectedDate} onChange={(d) => setSelectedDate(d)} />
-                    </Box>
+          </Typography>
+          
+          {isMobile ? (
+            <>
+              <IconButton
+                color="inherit"
+                aria-label="Select date"
+                onClick={() => setMobilePickerOpen(true)}
+                sx={{ mr: 1 }}
+              >
+                <CalendarTodayIcon />
+              </IconButton>
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <DatePicker
+                  open={mobilePickerOpen}
+                  onClose={() => setMobilePickerOpen(false)}
+                  value={selectedDate}
+                  onChange={(d) => setSelectedDate(d)}
+                  slotProps={{ textField: { sx: { display: 'none' } } }}
+                />
+              </LocalizationProvider>
+            </>
+          ) : (
+            <Box sx={{ mr: { xs: 1, sm: 2, md: 3 }, display: { xs: 'none', sm: 'flex' }, alignItems: 'center' }}>
+              <BasicDatePicker value={selectedDate} onChange={(d) => setSelectedDate(d)} />
+            </Box>
+          )}
           <Search>
             <SearchIconWrapper>
               <SearchIcon />
