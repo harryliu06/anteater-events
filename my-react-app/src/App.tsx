@@ -200,9 +200,16 @@ function App() {
       return dt.toISOString()
     }
 
+    const Format_day = (s: string) => {
+      const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
+      if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`
+      return s
+    }
+
     // prepare and validate payload fields before POST
     const startIso = toIso(data.day, data.start_time)
     const endIso = toIso(data.day, data.end_time)
+    const FormattedDay = Format_day(data.day || '')
 
     // require valid start/end times
     if (!startIso || !endIso) {
@@ -235,7 +242,7 @@ function App() {
       id: '',
       title: data.title,
       description: data.description,
-      day: data.day || day,
+      day: FormattedDay || day,
       start_time: startIso,
       end_time: endIso,
       latitude: loc.lat,
