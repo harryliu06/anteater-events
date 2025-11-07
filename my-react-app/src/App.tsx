@@ -302,7 +302,6 @@ function App() {
       await loadEvents(data.day || day, categories, { fit: true })
     } finally {
       setSelectedLocation(null)
-      
     }
   }
 
@@ -328,12 +327,12 @@ function App() {
       await loadEvents(day, categories, { fit: true, keepExistingOnEmpty: true })
       await loadUpcoming()
 
-      try {
-        const removeDemo = await addGeoJSONMarkers(map)
-        demoRemoveRef.current = removeDemo
-      } catch (e) {
-        console.warn('Failed to add demo markers', e)
-      }
+      // try {
+      //   const removeDemo = await addGeoJSONMarkers(map)
+      //   demoRemoveRef.current = removeDemo
+      // } catch (e) {
+      //   console.warn('Failed to add demo markers', e)
+      // }
     })
 
     return () => {

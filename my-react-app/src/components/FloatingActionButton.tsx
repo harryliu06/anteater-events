@@ -5,20 +5,14 @@ import NavigationIcon from '@mui/icons-material/Navigation';
 
 type Props = {
   onCreate?: () => void
-  onEdit?: () => void
-  onNavigate?: () => void
 }
 
-export default function FloatingActionButtons({ onCreate, onNavigate }: Props) {
+export default function FloatingActionButtons({ onCreate }: Props) {
   return (
     <div className="fab-container">
       <Box sx={{ '& > :not(style)': { m: 1 } }}>
         <Fab color="primary" aria-label="add" onClick={onCreate}>
           <AddIcon />
-        </Fab>
-        <Fab variant="extended" onClick={onNavigate}>
-          <NavigationIcon sx={{ mr: 1 }} />
-          Navigate
         </Fab>
       </Box>
     </div>
