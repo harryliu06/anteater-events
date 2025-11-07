@@ -1,23 +1,24 @@
-FROM python:3.13-slim
+FROM python:3.13-slim-bookworm
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && curl -sSL https://install.python-poetry.org | python3 - \
+    && apt-get purge -y curl && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
-
-RUN curl -sSL https://install.python-poetry.org | python3 -
 ENV PATH="/root/.local/bin:$PATH"
 
 
 COPY pyproject.toml poetry.lock* /app/
 
 RUN poetry config virtualenvs.create false \
-    && poetry install --no-interaction --no-ansi --no-root
+    && poetry install --no-interaction --no-ansi --no-root \
+    && rm -rf /root/.cache/pypoetry /root/.cache/pip
+
 
 COPY . /app/
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2"]
+CMD ["sh", "-c", "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers=1 --threads=2 --timeout=60"]
