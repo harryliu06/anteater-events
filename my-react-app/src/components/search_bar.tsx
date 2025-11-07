@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect} from 'react';
 import { styled, alpha } from '@mui/material/styles';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
@@ -55,23 +55,28 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
   },
 }));
 
-async function sendDataFromSearchBar(query: string, date?: Dayjs | null) {
+async function sendDataFromSearchBar(query: string | null, date?: Dayjs | null) {
   const q = String(query ?? '').trim();
   console.log('Search query to send:', q);
-  if (!q) return null;
 
   const d = date ?? dayjs();
   const formatted_date = `${d.year()}-${(d.month() + 1).toString().padStart(2, '0')}-${d.date().toString().padStart(2, '0')}`;
 
   const base = (API_BASE || '').replace(/\/+$/,'');
-  const url = `${base}/events/search/`;
+  const url = `${base}/events/`;
 
   try {
-    const resp = await axios.get(url, { params: { day: formatted_date, search: q }, timeout: 8000 });
-    console.log('Search response data:', resp.data);
+    // Request all events for the day from the backend using the format you requested
+    const resp = await axios.get(url, { params: { day: formatted_date, categories: 'all' }, timeout: 8000 });
+    console.log('Events for day response data:', resp.data);
 
     const events = resp.data?.events || [];
 
+    if (!q) {
+      // No searchiing => return all events
+      return events;
+    }
+    
     const normalized = (s: string) => s.toLowerCase().replace(/\s+/g,' ').trim();
     const needle = normalized(q);
 
@@ -99,12 +104,24 @@ function handleSearchKey(e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaE
 }
 
 
-export default function SearchBar() {
-    const [selectedDate, setSelectedDate] = useState<Dayjs | null>(dayjs());
-    
-    if (selectedDate != null) {
-        console.log('Selected date in SearchBar:', selectedDate.toString());
+type Props = {
+  onDateChange?: (d: Dayjs) => void
+}
+
+export default function SearchBar({ onDateChange }: Props) {
+  const [selectedDate, setSelectedDate] = useState<Dayjs | null>(dayjs());
+
+  // Avoid notifying parent on initial mount — only notify when user actually changes the date
+  const didMountRef = React.useRef(false)
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true
+      return
     }
+    if (selectedDate && typeof onDateChange === 'function') {
+      try { onDateChange(selectedDate) } catch (e) { console.warn('onDateChange handler failed', e) }
+    }
+  }, [selectedDate, onDateChange]);
 
   
   return (
@@ -125,7 +142,7 @@ export default function SearchBar() {
               <SearchIcon />
             </SearchIconWrapper>
             <StyledInputBase
-                placeholder="Search…"
+                placeholder="Search..."
                     inputProps={{ 'aria-label': 'search' }}
                     onKeyDown={(e) => handleSearchKey(e, selectedDate)}
             />
