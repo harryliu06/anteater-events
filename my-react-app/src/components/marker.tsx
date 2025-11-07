@@ -1,5 +1,4 @@
 import mapboxgl from 'mapbox-gl'
-import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import RoomTwoToneIcon from '@mui/icons-material/RoomTwoTone';
 
