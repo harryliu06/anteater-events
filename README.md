@@ -1,6 +1,14 @@
 #  AnteaterEvents
 # Check it out here: https://anteater-events.onrender.com/
 
+##Project Examples
+<p>
+  <img src="img/desktop_ui.png" alt="Home Page" width="250">
+  <img src="img/desktop_create.png" alt="Map Page" width="250">
+  <img src="img/mobile_ui.jpg" alt="Upload Event Page" width="250">
+  <img src="img/mobile_event_create.jpg" alt="Upload Event Page" width="250">
+</p>
+
 ##  Inspiration
 UCI students have a reputation for being antisocial and not going out much. While that might be true for some of us introverts, a big part of the issue is simply **not knowing what’s happening on campus**.  
 
