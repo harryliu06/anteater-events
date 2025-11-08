@@ -17,6 +17,7 @@
 
 
 ##  Inspiration
+This is our submission for the ICSSC 2025 Webjam!
 UCI students have a reputation for being antisocial and not going out much. While that might be true for some of us introverts, a big part of the issue is simply **not knowing what’s happening on campus**.  
 
 Existing tools like Zotspot make it inconvenient to find events — the search features are limited, and unless you already know the campus well, it can be confusing to locate events. On top of that, club events are often scattered across various social media pages.  
